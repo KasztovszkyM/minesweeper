@@ -8,6 +8,7 @@ import java.awt.event.*;
 public class GameFrame extends JFrame{
 	private MineField mineField;
 	private GameTimer gameTimer;
+	private BombTimer bombTimer;
 
 	private int rows;
 	private int cols;
@@ -24,6 +25,7 @@ public class GameFrame extends JFrame{
 	private JPanel statusBar;
 	private JLabel minesLabel;
 	private JLabel timerLabel;
+	private JLabel bombTimerLabel;
 	private JButton flagButton;
 	
 	private JTable leaderBoardTable;
@@ -48,8 +50,8 @@ public class GameFrame extends JFrame{
 	
 		ImageIcon icon2 = new ImageIcon("./image/blank.png");
 		blankImage = icon2.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
-	
-		
+
+		bombTimerLabel = new JLabel("Timed bomb: 5s");
 	}
 //////////////////////////////////////////////////////66	
 	//STRART OF CTR
@@ -66,8 +68,11 @@ public class GameFrame extends JFrame{
 		rows = r;
 		cols = c;
 		
-		//creating the minefield (the backend)
+		//creating the minefield and the timers (the backend)
 		mineField = new MineField(rows,cols);
+		bombTimer = new BombTimer(this);
+		gameTimer = new GameTimer();
+
 		
 		//END OF CTR
 		/////////////////////////////////////////////////////////////////////////////////
@@ -124,6 +129,7 @@ public class GameFrame extends JFrame{
 		minesLabel = new JLabel("Mines left:" + 40); //only creation 
 		timerLabel = new JLabel("Time: " + 0); //only creation for timer
 		
+
 		//Flag button:
 		flagButton = new JButton();
 		flagButton.addActionListener(new FlagListener(this)); //action listener
@@ -141,6 +147,7 @@ public class GameFrame extends JFrame{
 		mineSweeperPanel = new JPanel();
 		mineSweeperPanel.setLayout(new BorderLayout());
 	
+		statusBar.add(bombTimerLabel);
 		statusBar.add(timerLabel);
 		statusBar.add(minesLabel);
 		statusBar.add(flagButton);
@@ -178,12 +185,18 @@ public class GameFrame extends JFrame{
 	
 	private void victoryScreen(JFrame jf){
 		gameTimer.stop();
+		gameTimer.reset();
+		bombTimer.stop();
+		bombTimer.reset();
 		String Name = JOptionPane.showInputDialog("You Won!!! Please enter your name:");
 		//leaderBoardList.add(Name, gameTimer.getValue); or summin
 	} 
 
 	private void loseScreen(JFrame jf){
 		gameTimer.stop();
+		gameTimer.reset();
+		bombTimer.stop();
+		bombTimer.reset();
 		//Does all the nesseccary ui and backend changes in order to reset the board
 		JOptionPane.showMessageDialog(rootPane, "YOU LOST!!", "DEFEAT", JOptionPane.PLAIN_MESSAGE);
 		
@@ -206,7 +219,6 @@ public class GameFrame extends JFrame{
 				public GameBoardPanel(JFrame jf) {
 					this.jf = jf;
 
-					gameTimer = new GameTimer();
 					gameTimer.start();
 
 					setLayout(new GridLayout(rows,cols));
@@ -273,7 +285,7 @@ public class GameFrame extends JFrame{
 
 			@Override
 			public void actionPerformed(ActionEvent ae){
-				//boolean isTimedBefore = mineField.hasTimer(); //this is so we can check if the timer changed
+				boolean isTimedBefore = mineField.hasTimer(); //this is so we can check if the timer changed
 
 				
 				mineField.reveal(row, col);
@@ -309,6 +321,17 @@ public class GameFrame extends JFrame{
 
 						}
 					}
+				
+					//starting and stopping the timers based on the following logic:
+					//if: hasTimer changed from false to true we begin the bombTimer
+					//if: hasTimer is false (no matter what it was before) we stop and reset the bombTimer
+					if(isTimedBefore != mineField.hasTimer() && mineField.hasTimer()){
+						bombTimer.reset();
+						bombTimer.start();
+					}
+					if(!mineField.hasTimer()){
+						bombTimer.stop();
+					}
 
 				//updates minesLeft:
 				minesLabel.setText("Mines left: " +Integer.toString(mineField.getMinesLeft())); 
@@ -316,7 +339,7 @@ public class GameFrame extends JFrame{
 				jf.repaint();
 
 				//Checks if the game has ended and does the nesseccary actions
-				int outcome = mineField.checkEndOutcome(false);
+				int outcome = mineField.checkEndOutcome();
 				switch (outcome) {
 					case -1:
 						minesLabel.setText("YOU LOST!!!");
@@ -363,11 +386,65 @@ public class GameFrame extends JFrame{
 			public int getValue() {
 				return seconds;
 			}
+
+			public void reset(){
+				seconds = 0;
+			}
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				seconds++;
-				timerLabel.setText("Time: " + seconds + " s");
+				timerLabel.setText("Time: " + seconds + "s");
+			}
+		
+			
+		}
+	////////////////////////////////////////////////////////////////////
+	//BombTimer class:
+	private class BombTimer implements ActionListener {
+
+			private Timer timer;
+			private int seconds;
+			
+			private JFrame jf;
+
+			public BombTimer(JFrame jf) {
+				seconds = 5;
+				bombTimerLabel.setVisible(false);
+
+				this.jf = jf;
+				//we need jf bc of the loseScreen function and it needs it bc of the gameboardpanel function
+				//which needs for the CellListener which needs it for the repaint
+
+
+				// Create a Timer with a one-second delay
+				timer = new Timer(1000, this);
+			}
+
+			// Start the timer
+			public void start() {
+				bombTimerLabel.setVisible(true);
+				timer.start();
+			}
+
+			// Stop the timer
+			public void stop() {
+				bombTimerLabel.setVisible(false);
+				timer.stop();
+			}
+
+			// Get the current value of the timer
+			public void reset() {
+				seconds = 5;
+			}
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				seconds--;
+				bombTimerLabel.setText("Timed bomb: " + seconds +"s");
+				if(seconds == 0){
+					loseScreen(jf); 
+				}
 			}
 		
 			

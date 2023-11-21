@@ -191,12 +191,11 @@ public class MineField {
     }
 ///////////////////////////////////////////////////////////////////////////////////////
     //CHECK ENDING OUTCOME
-    //param: true if the ending is bc of the timed bomb timer
+    
     //return: -1 if the player lost, 0 if the game hasnt ended yet, 1 if the player won 
-    public int checkEndOutcome(boolean timer){
-        if(timer){return -1;}
-        
-        else if(!endOfGame){return 0;}
+    public int checkEndOutcome(){
+    
+        if(!endOfGame){return 0;}
 
         if(minesLeft != 0){ //this means the player clicked on a mine
             return -1; 
