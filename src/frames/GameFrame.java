@@ -4,11 +4,10 @@ import javax.swing.*;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class GameFrame extends JFrame{
 	private MineField mineField;
+	private GameTimer gameTimer;
 
 	private int rows;
 	private int cols;
@@ -24,6 +23,7 @@ public class GameFrame extends JFrame{
 	
 	private JPanel statusBar;
 	private JLabel minesLabel;
+	private JLabel timerLabel;
 	private JButton flagButton;
 	
 	private JTable leaderBoardTable;
@@ -49,6 +49,7 @@ public class GameFrame extends JFrame{
 		ImageIcon icon2 = new ImageIcon("./image/blank.png");
 		blankImage = icon2.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
 	
+		
 	}
 //////////////////////////////////////////////////////66	
 	//STRART OF CTR
@@ -121,6 +122,7 @@ public class GameFrame extends JFrame{
 		statusBar.setLayout(new FlowLayout());
 		
 		minesLabel = new JLabel("Mines left:" + 40); //only creation 
+		timerLabel = new JLabel("Time: " + 0); //only creation for timer
 		
 		//Flag button:
 		flagButton = new JButton();
@@ -139,7 +141,7 @@ public class GameFrame extends JFrame{
 		mineSweeperPanel = new JPanel();
 		mineSweeperPanel.setLayout(new BorderLayout());
 	
-		
+		statusBar.add(timerLabel);
 		statusBar.add(minesLabel);
 		statusBar.add(flagButton);
 		mineSweeperPanel.add(statusBar, BorderLayout.NORTH);
@@ -163,20 +165,49 @@ public class GameFrame extends JFrame{
 		
 		
 	}
+	///////////////////////////////////////////////////////////////////
 	//END OF CTR
 	
-	 private void showPanel(JPanel panel) {
+	//Helper functions:
+	private void showPanel(JPanel panel) {
 	        getContentPane().removeAll();
 	        getContentPane().add(panel);
 	        revalidate();
 	        repaint();
 	        }
 	
+	private void victoryScreen(JFrame jf){
+		gameTimer.stop();
+		String Name = JOptionPane.showInputDialog("You Won!!! Please enter your name:");
+		//leaderBoardList.add(Name, gameTimer.getValue); or summin
+	} 
+
+	private void loseScreen(JFrame jf){
+		gameTimer.stop();
+		//Does all the nesseccary ui and backend changes in order to reset the board
+		JOptionPane.showMessageDialog(rootPane, "YOU LOST!!", "DEFEAT", JOptionPane.PLAIN_MESSAGE);
+		
+		mineField = new MineField(16, 16); //creates the backend minefield
+		timerLabel.setText("Time: 0s"); //resetting the timer GAMEBOARDPANEL WILL DO THIS ANYWAYS, BUT STARTS FROM 1
+		//the replacing of the grid:
+		mineSweeperPanel.remove(gamePanel);
+		gamePanel = new GameBoardPanel(jf);
+		mineSweeperPanel.add(gamePanel,BorderLayout.CENTER); 
+		showPanel(mineSweeperPanel);
+		
+		minesLabel.setText("Mines left: 40");
+		jf.repaint();
+	} 
+
 	//gameBoardPanel - the game panel itself - enclosed class
 			private class GameBoardPanel extends JPanel{
+
 				JFrame jf; //for repainting porpuses 
 				public GameBoardPanel(JFrame jf) {
 					this.jf = jf;
+
+					gameTimer = new GameTimer();
+					gameTimer.start();
 
 					setLayout(new GridLayout(rows,cols));
 					for (int i = 0; i < rows; i++) {
@@ -185,7 +216,7 @@ public class GameFrame extends JFrame{
 			            cell.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 			            cell.setBackground(Color.LIGHT_GRAY);
 						
-						cell.setIcon(new ImageIcon(blankImage));
+						cell.setIcon(new ImageIcon(blankImage));	
 						
 						cell.addActionListener(new CellListener(jf, this, i, j));
 			        	this.add(cell);
@@ -289,19 +320,56 @@ public class GameFrame extends JFrame{
 				switch (outcome) {
 					case -1:
 						minesLabel.setText("YOU LOST!!!");
+						loseScreen(jf);
 						break;
 					case 0:
 							
 							break;
 					case 1:
 						minesLabel.setText("YOU WON!!!");
+						victoryScreen(jf);
 						break;
 					default:
 						break;
 				}
 			}
 		}
-		//////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
 		//Timer class:
+		private class GameTimer implements ActionListener {
+
+			private Timer timer;
+			private int seconds;
+			
+
+			public GameTimer() {
+				seconds = 0;
+
+				// Create a Timer with a one-second delay
+				timer = new Timer(1000, this);
+			}
+
+			// Start the timer
+			public void start() {
+				timer.start();
+			}
+
+			// Stop the timer
+			public void stop() {
+				timer.stop();
+			}
+
+			// Get the current value of the timer
+			public int getValue() {
+				return seconds;
+			}
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				seconds++;
+				timerLabel.setText("Time: " + seconds + " s");
+			}
 		
+			
+		}
 }
