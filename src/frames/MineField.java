@@ -130,10 +130,16 @@ public class MineField {
             }
             
             else if((tile.getMinesAround()==-1) && ((MineTile)tile).getTimed()){
+                //if its the first timed bomb you get a timer
                 if(!isOnTimer){
-                    isOnTimer = true;
-                    tile.setRevealed(true);
+                isOnTimer = true;  
                 }
+                //if its the second timed bomb you just lose
+                else{
+                endOfGame = true;
+                }
+                //reveal anyway
+                tile.setRevealed(true);
             }
             
             else{
@@ -212,6 +218,14 @@ public class MineField {
             }
         }
         return outcome;
+    }
+
+    public void revealAll(){
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                field[i][j].setRevealed(true);
+            }
+        }
     }
 
 }

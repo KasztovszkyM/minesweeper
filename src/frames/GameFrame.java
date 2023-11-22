@@ -5,10 +5,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+
 public class GameFrame extends JFrame{
 	private MineField mineField;
 	private GameTimer gameTimer;
 	private BombTimer bombTimer;
+	private LeaderBoard leaderBoardList;
 
 	private int rows;
 	private int cols;
@@ -33,9 +35,11 @@ public class GameFrame extends JFrame{
 	private Image[] numImages;
 	private Image flagImage;
 	private Image blankImage;
-//////////////////////////////////////////////////////
-//initializator block for improved performance
-	{
+
+
+///////////////////////////////////////////////////////////////////////////////
+	//intialization of the components
+	private void initComponents(){
 		numImages = new Image[10];
 		int idx;
 		for(int i =-1; i<9; i++){
@@ -52,29 +56,17 @@ public class GameFrame extends JFrame{
 		blankImage = icon2.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
 
 		bombTimerLabel = new JLabel("Timed bomb: 5s");
-	}
-//////////////////////////////////////////////////////66	
-	//STRART OF CTR
-	public GameFrame(int r, int c) {
-		//frame basic setup
-		super("Minesweeper");
-		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-		this.setSize(400 ,430);
-		this.setResizable(false);
-		this.setLocationRelativeTo(null);
+		leaderBoardList = new LeaderBoard();
+
 
 		this.setLayout(new BorderLayout());
-		
-		rows = r;
-		cols = c;
-		
 		//creating the minefield and the timers (the backend)
 		mineField = new MineField(rows,cols);
-		bombTimer = new BombTimer(this);
+		bombTimer = new BombTimer();
 		gameTimer = new GameTimer();
 
 		
-		//END OF CTR
+		
 		/////////////////////////////////////////////////////////////////////////////////
 		//Menu:
 		menuBar = new JMenuBar();
@@ -89,7 +81,11 @@ public class GameFrame extends JFrame{
 		
 		
 		JMenuItem reset= new JMenuItem("Reset");
+		reset.addActionListener(new ResetListener());
+
 		JMenuItem solve= new JMenuItem("Solve");
+		solve.addActionListener(new SolveListener());
+
 		JMenuItem leaderBoardItem = new JMenuItem("LeaderBoard");
 		JMenuItem game = new JMenuItem("MineSweeper");
 		
@@ -132,17 +128,17 @@ public class GameFrame extends JFrame{
 
 		//Flag button:
 		flagButton = new JButton();
-		flagButton.addActionListener(new FlagListener(this)); //action listener
+		flagButton.addActionListener(new FlagListener()); //action listener
 
 		//initialization:
 		flagButton.setPreferredSize(new Dimension(20, 20));
-		ImageIcon icon = new ImageIcon("./image/flag.png");
-        Image img = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
+		ImageIcon icon3 = new ImageIcon("./image/flag.png");
+        Image img = icon3.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
         flagButton.setIcon(new ImageIcon(img));
 	////////////////////////////////////////////////////////////////////////////////////////////66
 		
 		//game panel:
-        gamePanel = new GameBoardPanel(this);
+        gamePanel = new GameBoardPanel();
 		
 		mineSweeperPanel = new JPanel();
 		mineSweeperPanel.setLayout(new BorderLayout());
@@ -162,15 +158,34 @@ public class GameFrame extends JFrame{
 		titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		leaderBoardPanel.add(titleLabel,BorderLayout.NORTH);
 
-		String[] columnNames = {"Name", "Time"};
-		leaderBoardTable = new JTable(); //will use game data as constructor
-		leaderBoardPanel.add(leaderBoardTable,BorderLayout.CENTER);
+
+		leaderBoardTable = new JTable(leaderBoardList); //will use game data as constructor
+		JScrollPane scrollPane = new JScrollPane(leaderBoardTable); //put into a scrollpane
+		leaderBoardPanel.add(scrollPane,BorderLayout.CENTER);
 		
 		
 	//////////////////////////////////////////////////////////////
 		this.add(mineSweeperPanel); //always begins with the game panel
+
+	}
+
+
+//////////////////////////////////////////////////////66	
+	//STRART OF CTR
+	public GameFrame(int r, int c) {
+		//frame basic setup
+		super("Minesweeper");
+		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		this.setSize(400 ,430);
+		this.setResizable(false);
+		this.setLocationRelativeTo(null);
+
 		
 		
+		rows = r;
+		cols = c;
+		
+		initComponents();
 	}
 	///////////////////////////////////////////////////////////////////
 	//END OF CTR
@@ -182,42 +197,84 @@ public class GameFrame extends JFrame{
 	        revalidate();
 	        repaint();
 	        }
-	
-	private void victoryScreen(JFrame jf){
-		gameTimer.stop();
+
+
+	private void resetField(){
 		gameTimer.reset();
-		bombTimer.stop();
 		bombTimer.reset();
-		String Name = JOptionPane.showInputDialog("You Won!!! Please enter your name:");
-		//leaderBoardList.add(Name, gameTimer.getValue); or summin
+		gameTimer.start();
+		
+		mineField = new MineField(rows, cols);
+
+		//the replacing of the grid:
+		mineSweeperPanel.remove(gamePanel);
+		gamePanel = new GameBoardPanel();
+		mineSweeperPanel.add(gamePanel,BorderLayout.CENTER); 
+		showPanel(mineSweeperPanel); 
+		
+		minesLabel.setText("Mines left: 40");
+	}
+
+
+	private void redrawField(){
+		Image image;
+		//this is mainly needed bc of recursive revealing
+		//if only a single cell was revealed then it would be enough to set the image for the clicked button
+		//however with not clicked buttons being changed we need to iterate through the whole grid
+		Component[] components = gamePanel.getComponents(); //we store the buttons to set the image
+		for (int i = 0; i < components.length; i++) {
+			if (components[i] instanceof JButton) {
+				JButton button = (JButton) components[i];
+				int currRow = i / rows;
+				int currCol = i % cols;
+					Tile tile = mineField.getTile(currRow, currCol);
+					if(tile.isRevealed()){
+						image = numImages[(mineField.getTile(currRow, currCol).getMinesAround())+1]; // replace with the actual path to your image
+						button.setIcon(new ImageIcon(image));
+					}
+					
+					else if(mineField.isFlagMode()){
+						if(tile.isFlagged()){
+							ImageIcon icon = new ImageIcon("./image/flag.png"); 
+							image = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
+							button.setIcon(new ImageIcon(image));
+						}
+						else if(!tile.isFlagged()){
+							button.setIcon(new ImageIcon(blankImage));
+						}
+					}
+
+				}
+			}
+	}
+	
+	private void victoryScreen(){
+		gameTimer.stop();
+		bombTimer.stop();
+		gamePanel.makeUneditable();
+
+		String name = JOptionPane.showInputDialog("You Won!!! Please enter your name:");
+		int score = gameTimer.getValue();
+		leaderBoardList.add(score, name);
+	
+		
 	} 
 
-	private void loseScreen(JFrame jf){
+	private void loseScreen(){
 		gameTimer.stop();
-		gameTimer.reset();
 		bombTimer.stop();
-		bombTimer.reset();
+		gamePanel.makeUneditable();
+
 		//Does all the nesseccary ui and backend changes in order to reset the board
 		JOptionPane.showMessageDialog(rootPane, "YOU LOST!!", "DEFEAT", JOptionPane.PLAIN_MESSAGE);
 		
-		mineField = new MineField(16, 16); //creates the backend minefield
-		timerLabel.setText("Time: 0s"); //resetting the timer GAMEBOARDPANEL WILL DO THIS ANYWAYS, BUT STARTS FROM 1
-		//the replacing of the grid:
-		mineSweeperPanel.remove(gamePanel);
-		gamePanel = new GameBoardPanel(jf);
-		mineSweeperPanel.add(gamePanel,BorderLayout.CENTER); 
-		showPanel(mineSweeperPanel);
-		
-		minesLabel.setText("Mines left: 40");
-		jf.repaint();
+
 	} 
 
 	//gameBoardPanel - the game panel itself - enclosed class
 			private class GameBoardPanel extends JPanel{
-
-				JFrame jf; //for repainting porpuses 
-				public GameBoardPanel(JFrame jf) {
-					this.jf = jf;
+				public GameBoardPanel() {
+					
 
 					gameTimer.start();
 
@@ -230,9 +287,22 @@ public class GameFrame extends JFrame{
 						
 						cell.setIcon(new ImageIcon(blankImage));	
 						
-						cell.addActionListener(new CellListener(jf, this, i, j));
+						cell.addActionListener(new CellListener(i, j));
 			        	this.add(cell);
 			        }
+				}
+			}
+
+			//removes acion listeners so you can click on any of the buttons
+			public void makeUneditable(){
+				Component[] components = getComponents(); 
+				
+				for (int i = 0; i < components.length; i++){
+					JButton button = (JButton) components[i];
+					//basically a removeAllActionListeners:
+					for( ActionListener al : button.getActionListeners() ) {
+						button.removeActionListener( al );
+					}
 				}
 			}
 		}
@@ -241,10 +311,7 @@ public class GameFrame extends JFrame{
 
 			//Flaglistener:
 		private class FlagListener implements ActionListener{
-			private JFrame jf;
-			FlagListener(JFrame jf){
-				this.jf = jf;
-			}
+			
 			@Override
 			public void actionPerformed(ActionEvent ae){
 				if(!mineField.isFlagMode()){
@@ -252,7 +319,7 @@ public class GameFrame extends JFrame{
 					ImageIcon icon = new ImageIcon("./image/flagClicked.png"); 
 					Image img = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
 					flagButton.setIcon(new ImageIcon(img));
-					jf.repaint();
+					repaint();
 
 					mineField.setFlagMode(true); //set in the backend
 				}
@@ -262,7 +329,7 @@ public class GameFrame extends JFrame{
 					ImageIcon icon = new ImageIcon("./image/flag.png"); 
 					Image img = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
 					flagButton.setIcon(new ImageIcon(img));
-					jf.repaint();
+					repaint();
 
 					mineField.setFlagMode(false); //set in the backend
 				}
@@ -271,14 +338,12 @@ public class GameFrame extends JFrame{
 		/////////////////////////////////////////////////////////////////////////////////////
 		//CellListener: (Handles each button)
 		private class CellListener implements ActionListener{
-			private JFrame jf;
 			int row; 
 			int col;
-			GameBoardPanel gbp;
+			
 
-			CellListener(JFrame jf, GameBoardPanel gbp, int r, int c){
-				this.jf = jf;
-				this.gbp = gbp;
+			
+			CellListener( int r, int c){
 				this.row = r;
 				this.col = c;
 			}
@@ -287,70 +352,39 @@ public class GameFrame extends JFrame{
 			public void actionPerformed(ActionEvent ae){
 				boolean isTimedBefore = mineField.hasTimer(); //this is so we can check if the timer changed
 
-				
 				mineField.reveal(row, col);
 
-				Image image;
+				redrawField();
 				
-
-				//this is mainly needed bc of recursive revealing
-				//if only a single cell was revealed then it would be enough to set the image for the clicked button
-				//however with not clicked buttons being changed we need to iterate through the whole grid
-				Component[] components = gbp.getComponents(); //we store the buttons to set the image
-				for (int i = 0; i < components.length; i++) {
-					if (components[i] instanceof JButton) {
-						JButton button = (JButton) components[i];
-						int currRow = i / rows;
-                    	int currCol = i % cols;
-							Tile tile = mineField.getTile(currRow, currCol);
-							if(tile.isRevealed()){
-								image = numImages[(mineField.getTile(currRow, currCol).getMinesAround())+1]; // replace with the actual path to your image
-								button.setIcon(new ImageIcon(image));
-							}
-							
-							else if(mineField.isFlagMode()){
-								if(tile.isFlagged()){
-									ImageIcon icon = new ImageIcon("./image/flag.png"); 
-									image = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
-									button.setIcon(new ImageIcon(image));
-								}
-								else if(!tile.isFlagged()){
-									button.setIcon(new ImageIcon(blankImage));
-								}
-							}
-
-						}
-					}
-				
-					//starting and stopping the timers based on the following logic:
-					//if: hasTimer changed from false to true we begin the bombTimer
-					//if: hasTimer is false (no matter what it was before) we stop and reset the bombTimer
-					if(isTimedBefore != mineField.hasTimer() && mineField.hasTimer()){
-						bombTimer.reset();
-						bombTimer.start();
-					}
-					if(!mineField.hasTimer()){
-						bombTimer.stop();
-					}
+				//starting and stopping the timers based on the following logic:
+				//if: hasTimer changed from false to true we begin the bombTimer
+				//if: hasTimer is false (no matter what it was before) we stop and reset the bombTimer
+				if(isTimedBefore != mineField.hasTimer() && mineField.hasTimer()){
+					
+					
+					bombTimer.start();
+				}
+				if(!mineField.hasTimer()){
+					bombTimer.stop();
+					bombTimer.reset();
+				}
 
 				//updates minesLeft:
 				minesLabel.setText("Mines left: " +Integer.toString(mineField.getMinesLeft())); 
 
-				jf.repaint();
+				repaint();
 
 				//Checks if the game has ended and does the nesseccary actions
 				int outcome = mineField.checkEndOutcome();
 				switch (outcome) {
 					case -1:
-						minesLabel.setText("YOU LOST!!!");
-						loseScreen(jf);
+						//victoryScreen();
+						loseScreen();
 						break;
 					case 0:
-							
 							break;
 					case 1:
-						minesLabel.setText("YOU WON!!!");
-						victoryScreen(jf);
+						victoryScreen();
 						break;
 					default:
 						break;
@@ -389,6 +423,7 @@ public class GameFrame extends JFrame{
 
 			public void reset(){
 				seconds = 0;
+				timerLabel.setText("Time: " + seconds + "s");
 			}
 			
 			@Override
@@ -405,16 +440,11 @@ public class GameFrame extends JFrame{
 
 			private Timer timer;
 			private int seconds;
-			
-			private JFrame jf;
 
-			public BombTimer(JFrame jf) {
+			public BombTimer() {
 				seconds = 5;
 				bombTimerLabel.setVisible(false);
 
-				this.jf = jf;
-				//we need jf bc of the loseScreen function and it needs it bc of the gameboardpanel function
-				//which needs for the CellListener which needs it for the repaint
 
 
 				// Create a Timer with a one-second delay
@@ -436,6 +466,7 @@ public class GameFrame extends JFrame{
 			// Get the current value of the timer
 			public void reset() {
 				seconds = 5;
+				bombTimerLabel.setText("Timed bomb: " + seconds +"s");
 			}
 			
 			@Override
@@ -443,10 +474,27 @@ public class GameFrame extends JFrame{
 				seconds--;
 				bombTimerLabel.setText("Timed bomb: " + seconds +"s");
 				if(seconds == 0){
-					loseScreen(jf); 
+					loseScreen(); 
 				}
 			}
 		
 			
 		}
+
+	private class ResetListener implements ActionListener{
+		@Override
+		public void actionPerformed(ActionEvent ae){
+			resetField();
+		}
+	}
+
+	private class SolveListener implements ActionListener{
+		@Override
+		public void actionPerformed(ActionEvent ae){
+			mineField.revealAll();
+			gameTimer.stop();
+			redrawField();
+			repaint();
+		}
+	}
 }
