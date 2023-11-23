@@ -203,6 +203,10 @@ public class GameFrame extends JFrame{
 		gameTimer.reset();
 		bombTimer.reset();
 		gameTimer.start();
+
+		ImageIcon icon = new ImageIcon("./image/flag.png"); 
+		Image image = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
+		flagButton.setIcon(new ImageIcon(image));
 		
 		mineField = new MineField(rows, cols);
 
@@ -254,9 +258,11 @@ public class GameFrame extends JFrame{
 		gamePanel.makeUneditable();
 
 		String name = JOptionPane.showInputDialog("You Won!!! Please enter your name:");
+		
+		if(name != null){
 		int score = gameTimer.getValue();
 		leaderBoardList.add(score, name);
-	
+		}
 		
 	} 
 
@@ -265,7 +271,6 @@ public class GameFrame extends JFrame{
 		bombTimer.stop();
 		gamePanel.makeUneditable();
 
-		//Does all the nesseccary ui and backend changes in order to reset the board
 		JOptionPane.showMessageDialog(rootPane, "YOU LOST!!", "DEFEAT", JOptionPane.PLAIN_MESSAGE);
 		
 
@@ -378,8 +383,8 @@ public class GameFrame extends JFrame{
 				int outcome = mineField.checkEndOutcome();
 				switch (outcome) {
 					case -1:
-						//victoryScreen();
-						loseScreen();
+						victoryScreen();
+						//loseScreen();
 						break;
 					case 0:
 							break;

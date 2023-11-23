@@ -3,11 +3,13 @@ package frames;
 import java.util.Random;
 
 public class MineField {
+    private Random random = new Random(); 
 
     private int cols;
     private int rows;
     private int minesLeft; 
 
+    private boolean firstMove; //true if all the tiles are unrevealed
     private boolean flagMode; //true if we are in flagmode
     private boolean endOfGame; //true if the game has ended
     private boolean isOnTimer; //true if a timed bomb has been clicked and not yet disarmed
@@ -19,6 +21,7 @@ public class MineField {
         rows =r;
         cols = c;
         minesLeft = 40;
+        firstMove = true;
 
         //creating the field to fill it up:
         field = new Tile[rows][cols];
@@ -31,7 +34,6 @@ public class MineField {
         }
 
         //placing the mines:
-        Random random = new Random();
         int minesPlaced = 0;
 
         while (minesPlaced < minesLeft) {
@@ -83,6 +85,15 @@ public class MineField {
 
 
 ///////////////////////////////////////////////////////////////////
+//sets revealed to true on every tile
+ public void revealAll(){
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                field[i][j].setRevealed(true);
+            }
+        }
+    }
+
 //counts the Mines around a safeTile:
     private int countMinesAround(int row, int col) {
         int count = 0; //n.o. mines
@@ -109,7 +120,11 @@ public class MineField {
     //Reveal functions:
     public void reveal(int row, int col){
         if(!(field[row][col].isRevealed())){
-            if(!flagMode){
+            if(firstMove && !flagMode){
+                firstReveal(row, col);
+            }
+
+            else if(!flagMode){
                 noFlagReveal(row, col);
             }
 
@@ -117,6 +132,46 @@ public class MineField {
                 flagModeReveal(row, col);
             }
     }
+    }
+
+
+    public void firstReveal(int row, int col){
+        Tile tile = field[row][col];
+
+        if(tile.getMinesAround() != 0){
+            int[][] cellsToReplace = {
+                {row, col},
+                {row - 1, col - 1}, {row - 1, col}, {row - 1, col + 1},
+                {row, col - 1}, {row, col + 1},
+                {row + 1, col - 1}, {row + 1, col}, {row + 1, col + 1}
+        };
+
+        // Replace mines in the specified cells with non-mine cells randomly
+        for (int[] cell : cellsToReplace) {
+            int r = cell[0];
+            int c = cell[1];
+
+            //Check if the cell is within bounds AND has a mine AND give it a random chance to swap
+            if ((r >= 0 && r < rows && c >= 0 && c < cols) &&  (field[r][c] instanceof MineTile) && (random.nextDouble() < 0.8)) {
+                field[r][c] = new SafeTile();
+                --minesLeft;
+                }
+            }
+
+            // Setting minesAround for safeTiles:
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                    // If the cell is not a mine and not the swapped empty tile,
+                    // calculate the number of mines around it
+                    if (!(field[i][j] instanceof MineTile) ) {
+                        field[i][j].setMinesAround(countMinesAround(i, j));
+                    }
+                }
+            }
+            firstMove = false;
+        }
+
+            noFlagReveal(row, col);
     }
 
     //reveal in NON flag mode: if simple mine lose, if timed bomb start timer, if empty reveal recursively, else simple reveal
@@ -219,13 +274,4 @@ public class MineField {
         }
         return outcome;
     }
-
-    public void revealAll(){
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                field[i][j].setRevealed(true);
-            }
-        }
-    }
-
 }
