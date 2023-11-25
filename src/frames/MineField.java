@@ -34,22 +34,7 @@ public class MineField implements Serializable{
             }
         }
 
-        //placing the mines:
-        int minesPlaced = 0;
-
-        while (minesPlaced < minesLeft) {
-            int row = random.nextInt(rows);
-            int col = random.nextInt(cols);
-
-            if (!(field[row][col] instanceof MineTile)) {
-                boolean timed = random.nextDouble() < 0.1; //bascially: it has a 10% chance of being timed
-                field[row][col] = new MineTile(timed); 
-                minesPlaced++;
-            }
-        }
-
-
-        // Setting minesAround for safeTiles:
+        /* // Setting minesAround for safeTiles:
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 // If the cell is not a mine, calculate the number of mines around it
@@ -57,7 +42,7 @@ public class MineField implements Serializable{
                     field[i][j].setMinesAround(countMinesAround(i, j));
                 }
             }
-        }
+        } */
     }
 
 /////////////////////////////////////////////////////////
@@ -137,27 +122,39 @@ public class MineField implements Serializable{
 
 
     public void firstReveal(int row, int col){
-        Tile tile = field[row][col];
-
-        if(tile.getMinesAround() != 0){
+ 
             int[][] cellsToReplace = {
                 {row, col},
                 {row - 1, col - 1}, {row - 1, col}, {row - 1, col + 1},
                 {row, col - 1}, {row, col + 1},
                 {row + 1, col - 1}, {row + 1, col}, {row + 1, col + 1}
         };
+        
+        //placing the mines:
+        int minesPlaced = 0;
+        
+        while (minesPlaced < minesLeft) {
+            int row2 = random.nextInt(rows);
+            int col2 = random.nextInt(cols);
 
-        // Replace mines in the specified cells with non-mine cells randomly
-        for (int[] cell : cellsToReplace) {
+            boolean isprotected = false;
+            for (int[] cell : cellsToReplace) {
             int r = cell[0];
             int c = cell[1];
 
             //Check if the cell is within bounds AND has a mine AND give it a random chance to swap
-            if ((r >= 0 && r < rows && c >= 0 && c < cols) &&  (field[r][c] instanceof MineTile)) {
-                field[r][c] = new SafeTile();
-                --minesLeft;
-                }
+            if ((r >= 0 && r < rows && c >= 0 && c < cols) && (r == row2 && c == col2)) isprotected = true; 
             }
+
+
+            if ((!(field[row2][col2] instanceof MineTile)) && (!isprotected)) {
+                boolean timed = random.nextDouble() < 0.1; //bascially: it has a 10% chance of being timed
+                field[row2][col2] = new MineTile(timed); 
+                minesPlaced++;
+            }
+        }
+        // Replace mines in the specified cells with non-mine cells randomly
+        
 
             // Setting minesAround for safeTiles:
             for (int i = 0; i < rows; i++) {
@@ -168,9 +165,9 @@ public class MineField implements Serializable{
                         field[i][j].setMinesAround(countMinesAround(i, j));
                     }
                 }
-            }
+            } 
             firstMove = false;
-        }
+        
 
             noFlagReveal(row, col);
     }
