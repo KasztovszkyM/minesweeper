@@ -1,8 +1,9 @@
 package frames;
 
+import java.io.Serializable;
 import java.util.Random;
 
-public class MineField {
+public class MineField implements Serializable{
     private Random random = new Random(); 
 
     private int cols;
@@ -152,7 +153,7 @@ public class MineField {
             int c = cell[1];
 
             //Check if the cell is within bounds AND has a mine AND give it a random chance to swap
-            if ((r >= 0 && r < rows && c >= 0 && c < cols) &&  (field[r][c] instanceof MineTile) && (random.nextDouble() < 0.8)) {
+            if ((r >= 0 && r < rows && c >= 0 && c < cols) &&  (field[r][c] instanceof MineTile)) {
                 field[r][c] = new SafeTile();
                 --minesLeft;
                 }

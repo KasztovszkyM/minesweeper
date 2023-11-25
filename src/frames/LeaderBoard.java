@@ -1,4 +1,5 @@
 package frames;
+import java.io.Serializable;
 import java.util.*;
 
 
@@ -7,7 +8,7 @@ import javax.swing.table.AbstractTableModel;
 
 
 
-public class LeaderBoard extends AbstractTableModel{
+public class LeaderBoard extends AbstractTableModel implements Serializable{
     private List<Map.Entry<Integer, String>> list;
     private String[] colName = {"Name", "Time (s)"};
 
@@ -40,11 +41,6 @@ public class LeaderBoard extends AbstractTableModel{
                 this.sort();
                 fireTableRowsInserted(0, list.size() - 1);
             }
-        }
-
-        //for debugging:
-        for(int i = 0;i<list.size();i++){
-            System.out.println(list.get(i).getValue() +" "+ list.get(i).getKey());
         }
     }
 

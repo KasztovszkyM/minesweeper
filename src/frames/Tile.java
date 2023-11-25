@@ -1,6 +1,8 @@
 package frames;
 
-public abstract class Tile {
+import java.io.Serializable;
+
+public abstract class Tile implements Serializable{
     private boolean revealed;
 
     private boolean flagged;

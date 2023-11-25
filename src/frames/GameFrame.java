@@ -4,6 +4,14 @@ import javax.swing.*;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
 
 
 public class GameFrame extends JFrame{
@@ -26,15 +34,15 @@ public class GameFrame extends JFrame{
 	
 	private JPanel statusBar;
 	private JLabel minesLabel;
-	private JLabel timerLabel;
-	private JLabel bombTimerLabel;
+	private static JLabel timerLabel = new JLabel("Time: " + 0); //static bc of readObject issue
+	private static JLabel bombTimerLabel = new JLabel("Timed bomb: 5s"); //static bc of readObject issue
 	private JButton flagButton;
 	
 	private JTable leaderBoardTable;
 
-	private Image[] numImages;
-	private Image flagImage;
-	private Image blankImage;
+	private transient Image[] numImages;
+	private transient Image flagImage;
+	private transient Image blankImage;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,7 +63,7 @@ public class GameFrame extends JFrame{
 		ImageIcon icon2 = new ImageIcon("./image/blank.png");
 		blankImage = icon2.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
 
-		bombTimerLabel = new JLabel("Timed bomb: 5s");
+		
 		leaderBoardList = new LeaderBoard();
 
 
@@ -77,8 +85,10 @@ public class GameFrame extends JFrame{
 		leaderBoard = new JMenu("LeaderBoard");
 		
 		JMenuItem save= new JMenuItem("Save");
+		save.addActionListener(new SaveListener());
+
 		JMenuItem load= new JMenuItem("Load");
-		
+		load.addActionListener(new LoadListener());
 		
 		JMenuItem reset= new JMenuItem("Reset");
 		reset.addActionListener(new ResetListener());
@@ -122,8 +132,8 @@ public class GameFrame extends JFrame{
 		statusBar = new JPanel();
 		statusBar.setLayout(new FlowLayout());
 		
-		minesLabel = new JLabel("Mines left:" + 40); //only creation 
-		timerLabel = new JLabel("Time: " + 0); //only creation for timer
+		minesLabel = new JLabel("Mines left: "); //only creation 
+		
 		
 
 		//Flag button:
@@ -132,9 +142,7 @@ public class GameFrame extends JFrame{
 
 		//initialization:
 		flagButton.setPreferredSize(new Dimension(20, 20));
-		ImageIcon icon3 = new ImageIcon("./image/flag.png");
-        Image img = icon3.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
-        flagButton.setIcon(new ImageIcon(img));
+        flagButton.setIcon(new ImageIcon(flagImage));
 	////////////////////////////////////////////////////////////////////////////////////////////66
 		
 		//game panel:
@@ -204,9 +212,8 @@ public class GameFrame extends JFrame{
 		bombTimer.reset();
 		gameTimer.start();
 
-		ImageIcon icon = new ImageIcon("./image/flag.png"); 
-		Image image = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
-		flagButton.setIcon(new ImageIcon(image));
+		
+		flagButton.setIcon(new ImageIcon(flagImage));
 		
 		mineField = new MineField(rows, cols);
 
@@ -239,9 +246,7 @@ public class GameFrame extends JFrame{
 					
 					else if(mineField.isFlagMode()){
 						if(tile.isFlagged()){
-							ImageIcon icon = new ImageIcon("./image/flag.png"); 
-							image = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
-							button.setIcon(new ImageIcon(image));
+							button.setIcon(new ImageIcon(flagImage));
 						}
 						else if(!tile.isFlagged()){
 							button.setIcon(new ImageIcon(blankImage));
@@ -258,7 +263,7 @@ public class GameFrame extends JFrame{
 		gamePanel.makeUneditable();
 
 		String name = JOptionPane.showInputDialog("You Won!!! Please enter your name:");
-		
+
 		if(name != null){
 		int score = gameTimer.getValue();
 		leaderBoardList.add(score, name);
@@ -331,9 +336,7 @@ public class GameFrame extends JFrame{
 
 				else if(mineField.isFlagMode()){
 					//set int the frontend
-					ImageIcon icon = new ImageIcon("./image/flag.png"); 
-					Image img = icon.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
-					flagButton.setIcon(new ImageIcon(img));
+					flagButton.setIcon(new ImageIcon(flagImage));
 					repaint();
 
 					mineField.setFlagMode(false); //set in the backend
@@ -383,8 +386,8 @@ public class GameFrame extends JFrame{
 				int outcome = mineField.checkEndOutcome();
 				switch (outcome) {
 					case -1:
-						victoryScreen();
-						//loseScreen();
+						//victoryScreen();
+						loseScreen();
 						break;
 					case 0:
 							break;
@@ -398,11 +401,10 @@ public class GameFrame extends JFrame{
 		}
 		////////////////////////////////////////////////////////////////////
 		//Timer class:
-		private class GameTimer implements ActionListener {
+		private static class GameTimer implements ActionListener, Serializable {
 
-			private Timer timer;
+			private transient Timer timer;
 			private int seconds;
-			
 
 			public GameTimer() {
 				seconds = 0;
@@ -413,7 +415,9 @@ public class GameFrame extends JFrame{
 
 			// Start the timer
 			public void start() {
-				timer.start();
+				if (timer != null) {
+					timer.start();
+				}
 			}
 
 			// Stop the timer
@@ -433,17 +437,32 @@ public class GameFrame extends JFrame{
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				seconds++;
-				timerLabel.setText("Time: " + seconds + "s");
+					seconds++;
+					if (timerLabel != null) {
+						timerLabel.setText("Time: " + seconds + "s");
+					}
+				}
+			
+			private void writeObject(ObjectOutputStream out) throws IOException {
+				// Save the elapsed time before serialization
+				out.writeInt(seconds);
+			}
+
+			 private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+				// Restore the elapsed time after deserialization
+				seconds = in.readInt();
+				// Recreate the timer and schedule the task
+				timer = new Timer(1000, this);		
+
+				timer.start();
 			}
 		
-			
 		}
 	////////////////////////////////////////////////////////////////////
 	//BombTimer class:
-	private class BombTimer implements ActionListener {
+	private class BombTimer implements ActionListener, Serializable {
 
-			private Timer timer;
+			private transient Timer timer;
 			private int seconds;
 
 			public BombTimer() {
@@ -458,8 +477,10 @@ public class GameFrame extends JFrame{
 
 			// Start the timer
 			public void start() {
-				bombTimerLabel.setVisible(true);
-				timer.start();
+				
+					bombTimerLabel.setVisible(true);
+					timer.start();
+				
 			}
 
 			// Stop the timer
@@ -482,6 +503,19 @@ public class GameFrame extends JFrame{
 					loseScreen(); 
 				}
 			}
+
+			private void writeObject(ObjectOutputStream out) throws IOException {
+				// Save the elapsed time before serialization
+				out.writeInt(seconds);
+			}
+
+			 private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+				// Restore the elapsed time after deserialization
+				seconds = in.readInt();
+				// Recreate the timer and schedule the task
+				timer = new Timer(1000, this);
+				timer.start();
+			}
 		
 			
 		}
@@ -500,6 +534,49 @@ public class GameFrame extends JFrame{
 			gameTimer.stop();
 			redrawField();
 			repaint();
+		}
+	}
+
+	private class SaveListener implements ActionListener{
+		@Override
+		public void actionPerformed(ActionEvent ae){
+			JFileChooser chooser = new JFileChooser();
+			// szülő ablakot és a kiválasztógomb szövegét definiálni kell
+			int returnVal = chooser.showDialog(null, "Select");
+			if(returnVal == JFileChooser.APPROVE_OPTION) {
+				String file = chooser.getSelectedFile().getAbsolutePath();
+	
+				try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))){
+				oos.writeObject(mineField);
+				oos.writeObject(leaderBoardList);
+				oos.writeObject(gameTimer);
+				oos.writeObject(bombTimer);
+				}	catch (IOException  | NullPointerException e) {e.printStackTrace();}
+			}
+		}
+	}
+
+
+	private class LoadListener implements ActionListener{
+		@Override
+		public void actionPerformed(ActionEvent ae){
+			JFileChooser chooser = new JFileChooser();
+			// szülő ablakot és a kiválasztógomb szövegét definiálni kell
+			int returnVal = chooser.showDialog(null, "Select");
+			if(returnVal == JFileChooser.APPROVE_OPTION) {
+				String file = chooser.getSelectedFile().getAbsolutePath();
+	
+				try(ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))){
+					mineField = (MineField) ois.readObject();
+					leaderBoardList = (LeaderBoard) ois.readObject();
+					gameTimer = (GameTimer) ois.readObject();
+					bombTimer = (BombTimer) ois.readObject();
+
+					redrawField();
+					repaint();
+				
+				}	catch (IOException | ClassNotFoundException | NullPointerException e) {e.printStackTrace();}
+			}
 		}
 	}
 }
