@@ -5,12 +5,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 
 
@@ -23,22 +21,16 @@ public class GameFrame extends JFrame{
 	private int rows;
 	private int cols;
 
-	private JMenuBar menuBar;
-	private JMenu fileMenu;
-	private JMenu gameMenu;
-	private JMenu leaderBoard;
 	
 	private JPanel mineSweeperPanel;
 	private GameBoardPanel gamePanel;
 	private JPanel leaderBoardPanel;
 	
-	private JPanel statusBar;
 	private JLabel minesLabel;
 	private static JLabel timerLabel = new JLabel("Time: " + 0); //static bc of readObject issue
 	private static JLabel bombTimerLabel = new JLabel("Timed bomb: 5s"); //static bc of readObject issue
 	private JButton flagButton;
 	
-	private JTable leaderBoardTable;
 
 	private transient Image[] numImages;
 	private transient Image flagImage;
@@ -64,7 +56,7 @@ public class GameFrame extends JFrame{
 		blankImage = icon2.getImage().getScaledInstance(20,20, Image.SCALE_SMOOTH);
 
 		
-		leaderBoardList = new LeaderBoard();
+		
 
 
 		this.setLayout(new BorderLayout());
@@ -77,12 +69,12 @@ public class GameFrame extends JFrame{
 		
 		/////////////////////////////////////////////////////////////////////////////////
 		//Menu:
-		menuBar = new JMenuBar();
+		JMenuBar menuBar = new JMenuBar();
 		menuBar.setPreferredSize(new Dimension(400,30));
 	
-		fileMenu = new JMenu("File");
-		gameMenu = new JMenu("Game");
-		leaderBoard = new JMenu("LeaderBoard");
+		JMenu fileMenu = new JMenu("File");
+		JMenu gameMenu = new JMenu("Game");
+		JMenu leaderBoard = new JMenu("LeaderBoard");
 		
 		JMenuItem save= new JMenuItem("Save");
 		save.addActionListener(new SaveListener());
@@ -129,7 +121,7 @@ public class GameFrame extends JFrame{
 		menuBar.add(leaderBoard);
 		this.setJMenuBar(menuBar);
 		
-		statusBar = new JPanel();
+		JPanel statusBar = new JPanel();
 		statusBar.setLayout(new FlowLayout());
 		
 		minesLabel = new JLabel("Mines left: "); //only creation 
@@ -167,7 +159,7 @@ public class GameFrame extends JFrame{
 		leaderBoardPanel.add(titleLabel,BorderLayout.NORTH);
 
 
-		leaderBoardTable = new JTable(leaderBoardList); //will use game data as constructor
+		JTable leaderBoardTable = new JTable(leaderBoardList); //will use game data as constructor
 		JScrollPane scrollPane = new JScrollPane(leaderBoardTable); //put into a scrollpane
 		leaderBoardPanel.add(scrollPane,BorderLayout.CENTER);
 		
@@ -188,6 +180,24 @@ public class GameFrame extends JFrame{
 		this.setResizable(false);
 		this.setLocationRelativeTo(null);
 
+
+		leaderBoardList = new LeaderBoard();
+		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("./save_files/leaderboard"))) {
+			leaderBoardList = (LeaderBoard) ois.readObject();
+		} catch (IOException | ClassNotFoundException ex) {
+			ex.printStackTrace();
+		}
+        
+		addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("./save_files/leaderboard"))) {
+					oos.writeObject(leaderBoardList);
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+            }
+        });
 		
 		
 		rows = r;
@@ -241,17 +251,16 @@ public class GameFrame extends JFrame{
 					Tile tile = mineField.getTile(currRow, currCol);
 					if(tile.isRevealed()){
 						image = numImages[(mineField.getTile(currRow, currCol).getMinesAround())+1]; // replace with the actual path to your image
-						button.setIcon(new ImageIcon(image));
+						button.setIcon(new ImageIcon(image));		
 					}
 					
-					else if(mineField.isFlagMode()){
-						if(tile.isFlagged()){
-							button.setIcon(new ImageIcon(flagImage));
-						}
-						else if(!tile.isFlagged()){
-							button.setIcon(new ImageIcon(blankImage));
-						}
+					else if(tile.isFlagged()){
+						button.setIcon(new ImageIcon(flagImage));
 					}
+					else if(!tile.isFlagged()){
+						button.setIcon(new ImageIcon(blankImage));
+					}
+					
 
 				}
 			}
@@ -280,7 +289,7 @@ public class GameFrame extends JFrame{
 		
 
 	} 
-
+///////////////////////////////////////////////////////////////////////////////////
 	//gameBoardPanel - the game panel itself - enclosed class
 			private class GameBoardPanel extends JPanel{
 				public GameBoardPanel() {
@@ -386,7 +395,7 @@ public class GameFrame extends JFrame{
 				int outcome = mineField.checkEndOutcome();
 				switch (outcome) {
 					case -1:
-						//victoryScreen();
+						//victoryScreen(); //for testing
 						loseScreen();
 						break;
 					case 0:
@@ -548,7 +557,6 @@ public class GameFrame extends JFrame{
 	
 				try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))){
 				oos.writeObject(mineField);
-				oos.writeObject(leaderBoardList);
 				oos.writeObject(gameTimer);
 				oos.writeObject(bombTimer);
 				}	catch (IOException  | NullPointerException e) {e.printStackTrace();}
@@ -568,7 +576,6 @@ public class GameFrame extends JFrame{
 	
 				try(ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))){
 					mineField = (MineField) ois.readObject();
-					leaderBoardList = (LeaderBoard) ois.readObject();
 					gameTimer = (GameTimer) ois.readObject();
 					bombTimer = (BombTimer) ois.readObject();
 

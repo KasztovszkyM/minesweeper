@@ -33,16 +33,6 @@ public class MineField implements Serializable{
                 field[i][j] = new SafeTile();
             }
         }
-
-        /* // Setting minesAround for safeTiles:
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                // If the cell is not a mine, calculate the number of mines around it
-                if (!(field[i][j] instanceof MineTile)) {
-                    field[i][j].setMinesAround(countMinesAround(i, j));
-                }
-            }
-        } */
     }
 
 /////////////////////////////////////////////////////////
@@ -148,8 +138,7 @@ public class MineField implements Serializable{
 
 
             if ((!(field[row2][col2] instanceof MineTile)) && (!isprotected)) {
-                boolean timed = random.nextDouble() < 0.1; //bascially: it has a 10% chance of being timed
-                field[row2][col2] = new MineTile(timed); 
+                field[row2][col2] = new MineTile(); 
                 minesPlaced++;
             }
         }
@@ -195,8 +184,25 @@ public class MineField implements Serializable{
                 tile.setRevealed(true);
             }
             
-            else{
-               if(tile.getMinesAround() == 0){
+            else{//at this point the tile is for sure not mine so we can cast safely
+                if(((SafeTile)tile).getSepcial()){
+                    int flagsToRemove = Math.min(minesLeft < 40 ? 40 - minesLeft : 0, 3);
+    
+                    for (int i = 0; i < rows && flagsToRemove > 0; i++) {
+                        for (int j = 0; j < cols && flagsToRemove > 0; j++) {
+                            if (field[i][j].isFlagged() && random.nextDouble()<0.8) {
+                                field[i][j].setFlagged(false);
+                                minesLeft++;
+                                flagsToRemove--;
+                            }
+                        }
+                    }
+                    
+                }
+            }
+
+                //recursive reveal:
+                if(tile.getMinesAround() == 0){
                     tile.setRevealed(true);
                     int[] rowOffsets = {-1, -1, -1, 0, 0, 1, 1, 1};
                     int[] colOffsets = {-1, 0, 1, -1, 1, -1, 0, 1};
@@ -212,13 +218,15 @@ public class MineField implements Serializable{
                      }
                 }
 
+                //if nothing special than reveal:
                 else{
                     tile.setRevealed(true);
                     
+                    }
+                
                 }
             }
-        }
-    }
+    
         
 
     //reveal in flagmode: if defused then timer dissappears, if not flagged flag, if flagged unflag

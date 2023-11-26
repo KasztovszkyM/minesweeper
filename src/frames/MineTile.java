@@ -1,11 +1,14 @@
 package frames;
+import java.util.Random;
 
 public class MineTile extends Tile{
     private boolean isTimed;
     
 
-    MineTile(boolean b){
-        isTimed = b;
+    MineTile(){
+        Random random = new Random();
+        isTimed = random.nextDouble() < 0.1; //bascially: it has a 10% chance of being timed
+        
     }
 
     public int getMinesAround(){

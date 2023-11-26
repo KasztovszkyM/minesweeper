@@ -1,5 +1,4 @@
 package frames;
-import java.io.Serializable;
 import java.util.*;
 
 
@@ -8,7 +7,7 @@ import javax.swing.table.AbstractTableModel;
 
 
 
-public class LeaderBoard extends AbstractTableModel implements Serializable{
+public class LeaderBoard extends AbstractTableModel{
     private List<Map.Entry<Integer, String>> list;
     private String[] colName = {"Name", "Time (s)"};
 
