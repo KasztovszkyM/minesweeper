@@ -6,7 +6,7 @@ public class SafeTile extends Tile{
     private int minesAround;
     private boolean special;
 
-    SafeTile(){
+    public SafeTile(){
         Random random = new Random();
         special = random.nextDouble() < 0.03;
     }

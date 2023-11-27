@@ -5,7 +5,7 @@ public class MineTile extends Tile{
     private boolean isTimed;
     
 
-    MineTile(){
+    public MineTile(){
         Random random = new Random();
         isTimed = random.nextDouble() < 0.1; //bascially: it has a 10% chance of being timed
         
@@ -19,10 +19,7 @@ public class MineTile extends Tile{
         return isTimed;
     }
 
-    public void setTimed(boolean b){
-        isTimed = b;
-    }
- 
+
     public void setMinesAround(int m){//doesnt do much, only here bc of abstract class
     }
     
