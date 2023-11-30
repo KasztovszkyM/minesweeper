@@ -13,9 +13,9 @@ import java.io.Serializable;
 
 
 public class GameFrame extends JFrame{
-	private MineField mineField;
-	private GameTimer gameTimer;
-	private BombTimer bombTimer;
+	private  MineField mineField;
+	private  GameTimer gameTimer;
+	private  BombTimer bombTimer;
 	private LeaderBoard leaderBoardList;
 
 	private int rows;
@@ -285,7 +285,7 @@ public class GameFrame extends JFrame{
 		bombTimer.stop();
 		gamePanel.makeUneditable();
 
-		JOptionPane.showMessageDialog(rootPane, "YOU LOST!!", "DEFEAT", JOptionPane.PLAIN_MESSAGE);
+		JOptionPane.showMessageDialog(null, "YOU LOST!!", "DEFEAT", JOptionPane.PLAIN_MESSAGE);
 		
 
 	} 
@@ -558,7 +558,6 @@ public class GameFrame extends JFrame{
 				try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))){
 				oos.writeObject(mineField);
 				oos.writeObject(gameTimer);
-				oos.writeObject(bombTimer);
 				}	catch (IOException  | NullPointerException e) {e.printStackTrace();}
 			}
 		}
@@ -579,7 +578,8 @@ public class GameFrame extends JFrame{
 					gameTimer.stop();
 					gameTimer.reset();
 					gameTimer = (GameTimer) ois.readObject();
-					bombTimer = (BombTimer) ois.readObject();
+					bombTimer.stop();
+					bombTimer.reset();
 
 					redrawField();
 					repaint();
