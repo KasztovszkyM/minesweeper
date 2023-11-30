@@ -576,6 +576,8 @@ public class GameFrame extends JFrame{
 	
 				try(ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))){
 					mineField = (MineField) ois.readObject();
+					gameTimer.stop();
+					gameTimer.reset();
 					gameTimer = (GameTimer) ois.readObject();
 					bombTimer = (BombTimer) ois.readObject();
 

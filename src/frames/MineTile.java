@@ -7,7 +7,7 @@ public class MineTile extends Tile{
 
     public MineTile(){
         Random random = new Random();
-        isTimed = random.nextDouble() < 0.1; //bascially: it has a 10% chance of being timed
+        isTimed = random.nextDouble() < 1; //bascially: it has a 10% chance of being timed
         
     }
 

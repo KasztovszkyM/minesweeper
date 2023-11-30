@@ -274,7 +274,7 @@ public class MineField implements Serializable{
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 Tile tile = field[i][j];
-                if(tile instanceof MineTile && !(tile.isFlagged())){outcome = 0;} //if a mine is not flagged
+                if(tile instanceof MineTile && !((tile.isFlagged()) ||(tile.isRevealed())) ){outcome = 0;} //if a mine is not flagged or revealed (timed bomb)
                 if(tile instanceof SafeTile && !(tile.isRevealed())){outcome = 0;} //if a safe tile is not revealed
             }
         }
